@@ -5,7 +5,7 @@ My personal song book contains KumYoung songs
 Themes are copied from Javier Segovia Córdoba. Visit his projects: https://github.com/Dahnark
 
 # Database
-Database is not yet included because I'm converting it from sqlite to realm database.
+Database already included but instead of realm database as my previous plan, I'm using json for now.
 
 # Note
 This application is for my personal use only...
