@@ -15,10 +15,17 @@ import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 
 import songbook.klaydze.com.songbook.R;
@@ -52,7 +59,7 @@ public class MainActivity extends AppCompatActivity
 
         setUpNavigationDrawer();
 
-        generateSongList();
+        readSongList();
     }
 
     public void getDefaultTheme() {
@@ -101,7 +108,9 @@ public class MainActivity extends AppCompatActivity
     }
 
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-    private void generateSongList() {
+    private void readSongList() {
+        SongListItem songDetails;
+
         linearLayoutManager = new LinearLayoutManager(MainActivity.this);
 
         recylerSongList = (RecyclerView) findViewById(R.id.recylerSongList);
@@ -109,14 +118,44 @@ public class MainActivity extends AppCompatActivity
         recylerSongList.setHasFixedSize(true);
 
         songListItems = new ArrayList<>();
-        for (int i = 0; i <= 100; i++) {
-            songListItems.add(new SongListItem(String.format("%05d", i), "Song Title Number " + String.valueOf(i), "Artist " + String.valueOf(i)));
+
+        try {
+            JSONObject jsonObject = new JSONObject(loadJSONFromAsset());
+            JSONArray jsonArray = jsonObject.getJSONArray("rows");
+
+            for (int i = 0; i <= jsonArray.length(); i++) {
+                JSONArray obj = jsonArray.getJSONArray(i);
+
+                songDetails = new SongListItem(obj.get(3).toString(), obj.get(1).toString(), obj.get(2).toString(), false);
+                songListItems.add(songDetails);
+            }
+
+        } catch (JSONException e) {
+            e.printStackTrace();
         }
 
         songListAdapter = new SongListAdapter(songListItems);
         recylerSongList.setAdapter(songListAdapter);
         recylerSongList.addItemDecoration(new DividerItemDecoration(MainActivity.this, null));
+    }
 
+    private String loadJSONFromAsset() {
+        InputStream inputStream;
+        String jsonData = null;
+
+        try {
+            inputStream = getAssets().open("songlist.json");
+            int size = inputStream.available();
+            byte[] buffer = new byte[size];
+            inputStream.read(buffer);
+            inputStream.close();
+
+            jsonData = new String(buffer, "UTF-8");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return jsonData;
     }
 
     @Override
