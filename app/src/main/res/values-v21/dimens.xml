@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Default screen margins, per the Android Design guidelines. -->
+    <dimen name="nav_header_vertical_spacing">16dp</dimen>
+    <dimen name="nav_drawer_header_height">160dp</dimen>
+
+    <!-- Default screen margins, per the Android Design guidelines. -->
+    <dimen name="horizontal_margin_16">16dp</dimen>
+    <dimen name="vertical_margin_16">16dp</dimen>
+    <dimen name="fab_margin">16dp</dimen>
+    <dimen name="nav_drawer_profile_width">64dp</dimen>
+    <dimen name="nav_drawer_profile_height">64dp</dimen>
+    <dimen name="margin_padding_48">48dp</dimen>
+    <dimen name="margin_padding_56">56dp</dimen>
+    <dimen name="horizontal_margin_8">8dp</dimen>
+    <dimen name="margin_padding_toolbar_status_bar_8andtoolbarand25">64dp</dimen>
+</resources>
