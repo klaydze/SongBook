@@ -9,6 +9,16 @@ public class SongListItem {
             songTitle,
             songArtist;
 
+    private boolean isFavorite;
+
+    public boolean isFavorite() {
+        return isFavorite;
+    }
+
+    public void setFavorite(boolean favorite) {
+        isFavorite = favorite;
+    }
+
     public String getSongNumber() {
         return songNumber;
     }
@@ -33,11 +43,10 @@ public class SongListItem {
         this.songArtist = songArtist;
     }
 
-    public SongListItem(String songNumber, String songTitle, String songArtist) {
+    public SongListItem(String songNumber, String songTitle, String songArtist, boolean isFavorite) {
         this.songNumber = songNumber;
         this.songTitle = songTitle;
         this.songArtist = songArtist;
+        this.isFavorite = isFavorite;
     }
-
-
 }
