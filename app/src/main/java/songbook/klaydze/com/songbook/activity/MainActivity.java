@@ -15,7 +15,6 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -36,7 +35,7 @@ import songbook.klaydze.com.songbook.decoration.recyclerview.DividerItemDecorati
 import songbook.klaydze.com.songbook.model.SongListItem;
 
 public class MainActivity extends AppCompatActivity
-                                        implements NavigationView.OnNavigationItemSelectedListener {
+        implements NavigationView.OnNavigationItemSelectedListener {
 
     private Toolbar toolbar;
     private SharedPreferences sharedPreferences;
@@ -60,16 +59,19 @@ public class MainActivity extends AppCompatActivity
         setContentView(R.layout.activity_main);
 
         RealmConfiguration config = new RealmConfiguration.Builder(getApplicationContext())
-                                    .deleteRealmIfMigrationNeeded()
-                                    .build();
+                .deleteRealmIfMigrationNeeded()
+                .build();
 
-        realm = Realm.getInstance(config);
+        if (realm == null)
+            realm = Realm.getInstance(config);
 
         setUpToolBar();
 
         setUpNavigationDrawer();
 
-        readSongList();
+        setUpRealmRecycler(0);
+
+        //loadSongListFromJSON();
     }
 
     public void getDefaultTheme() {
@@ -82,7 +84,9 @@ public class MainActivity extends AppCompatActivity
         toolbar = (Toolbar) findViewById(R.id.toolbar);
 
         setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayShowHomeEnabled(true);
+
+        if (getSupportActionBar() != null)
+            getSupportActionBar().setDisplayShowHomeEnabled(true);
     }
 
     public void setUpNavigationDrawer() {
@@ -113,7 +117,7 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-    private void readSongList() {
+    private void loadSongListFromJSON() {
         SongListItem songDetails;
 
         linearLayoutManager = new LinearLayoutManager(MainActivity.this);
@@ -133,25 +137,15 @@ public class MainActivity extends AppCompatActivity
 
                 songDetails = new SongListItem(obj.get(3).toString(), obj.get(1).toString(), obj.get(2).toString(), false);
                 songListItems.add(songDetails);
-
-                realm.beginTransaction();
-                SongModel song = realm.createObject(SongModel.class);
-                song.setSongId(Integer.parseInt(obj.get(0).toString()));
-                song.setSongNumber(obj.get(3).toString());
-                song.setSongTitle(obj.get(1).toString());
-                song.setSongArtist(obj.get(2).toString());
-                song.setSongCountry(obj.get(4).toString());
-                song.setFavorite(Integer.parseInt(obj.get(5).toString()) != 0);
-                realm.commitTransaction();
             }
 
         } catch (JSONException e) {
             e.printStackTrace();
         }
 
-        /*songListAdapter = new SongListAdapter(songListItems);
+        songListAdapter = new SongListAdapter(songListItems);
         recylerSongList.setAdapter(songListAdapter);
-        recylerSongList.addItemDecoration(new DividerItemDecoration(MainActivity.this, null));*/
+        recylerSongList.addItemDecoration(new DividerItemDecoration(MainActivity.this, null));
     }
 
     private String loadJSONFromAsset() {
@@ -173,13 +167,38 @@ public class MainActivity extends AppCompatActivity
         return jsonData;
     }
 
-    private void setUpRealmRecycler() {
+    private void setUpRealmRecycler(int i) {
         linearLayoutManager = new LinearLayoutManager(MainActivity.this);
         recylerSongList = (RecyclerView) findViewById(R.id.recylerSongList);
         recylerSongList.setLayoutManager(linearLayoutManager);
         recylerSongList.setHasFixedSize(true);
-        recylerSongList.setAdapter(new SongRecyclerViewAdapter(getApplicationContext(),
-                                                                realm.where(SongModel.class).findAll()));
+
+        switch (i) {
+            case 0: // All Song
+                recylerSongList.setAdapter(new SongRecyclerViewAdapter(getApplicationContext(),
+                        realm.where(SongModel.class)
+                                .findAll()));
+                break;
+            case 1: // Favorite
+                recylerSongList.setAdapter(new SongRecyclerViewAdapter(getApplicationContext(),
+                        realm.where(SongModel.class)
+                                .equalTo("isFavorite", true)
+                                .findAllSorted("songTitle")));
+                break;
+            case 2: // Local
+                recylerSongList.setAdapter(new SongRecyclerViewAdapter(getApplicationContext(),
+                        realm.where(SongModel.class)
+                                .equalTo("songCountry", "PHI")
+                                .findAllSorted("songTitle")));
+                break;
+            case 3: // International
+                recylerSongList.setAdapter(new SongRecyclerViewAdapter(getApplicationContext(),
+                        realm.where(SongModel.class)
+                                .equalTo("songCountry", "INT")
+                                .findAllSorted("songTitle")));
+                break;
+        }
+
         recylerSongList.addItemDecoration(new DividerItemDecoration(MainActivity.this, null));
     }
 
@@ -200,7 +219,7 @@ public class MainActivity extends AppCompatActivity
         if (id == R.id.action_about) {
             return true;
         } else if (id == R.id.action_refresh) {
-            setUpRealmRecycler();
+//            setUpRealmRecycler();
             return true;
         }
 
@@ -212,10 +231,31 @@ public class MainActivity extends AppCompatActivity
         // Handle navigation view item clicks here.
         int id = item.getItemId();
 
+        if (id == R.id.nav_all_songs) {
+            if (getSupportActionBar() != null)
+                getSupportActionBar().setTitle(R.string.title_all_songs);
+
+            setUpRealmRecycler(0);
+        } else if (id == R.id.nav_favorite_songs) {
+            if (getSupportActionBar() != null)
+                getSupportActionBar().setTitle(R.string.title_favorites);
+
+            setUpRealmRecycler(1);
+        } else if (id == R.id.nav_local_songs) {
+            if (getSupportActionBar() != null)
+                getSupportActionBar().setTitle(R.string.title_local);
+
+            setUpRealmRecycler(2);
+        } else if (id == R.id.nav_international_songs) {
+            if (getSupportActionBar() != null)
+                getSupportActionBar().setTitle(R.string.title_international);
+
+            setUpRealmRecycler(3);
+        }
+
         if (id == R.id.nav_settings) {
             Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
             startActivity(intent);
-            // finish();
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
