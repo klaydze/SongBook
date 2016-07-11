@@ -54,7 +54,7 @@
         </LinearLayout>
 
         <ToggleButton
-            android:id="@+id/toggleButton1"
+            android:id="@+id/toggleFavorite"
             style="@style/toggleButton"
             android:layout_width="32dp"
             android:layout_height="32dp"
