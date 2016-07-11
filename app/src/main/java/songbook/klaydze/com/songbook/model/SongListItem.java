@@ -1,5 +1,7 @@
 package songbook.klaydze.com.songbook.model;
 
+import io.realm.RealmObject;
+
 /**
  * Created by Jessie on 7/2/2016.
  */
