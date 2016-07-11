@@ -4,6 +4,8 @@
     <string name="action_about">About</string>
     <string name="action_search">Search</string>
     <string name="action_refresh">Refresh</string>
+    <string name="github">https://github.com/klaydze/SongBook/tree/master</string>
+    <string name="action_about_description">Song Book is an app with KumYoung song list contents and designed by Jessie Semana.</string>
     <string name="drawer_open">Open</string>
     <string name="drawer_close">Close</string>
 
@@ -33,5 +35,6 @@
     <string name="default_song_number">00000</string>
     <string name="default_song_title">Song title here...</string>
     <string name="default_song_artist">Artist</string>
+
 
 </resources>
