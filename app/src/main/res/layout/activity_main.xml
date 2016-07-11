@@ -11,12 +11,14 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <include layout="@layout/fragment_song_list_main" />
+        <!--<include layout="@layout/fragment_song_list_main" />-->
 
         <LinearLayout
             android:id="@+id/container_toolbar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:background="@android:color/white"
+            android:elevation="8dp"
             android:orientation="vertical">
 
             <!-- Enable this if you set fitsSystemWindows="false"
@@ -34,8 +36,11 @@
 
         <FrameLayout
             android:id="@+id/container_body"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <include layout="@layout/fragment_song_list_main" />
+        </FrameLayout>
     </RelativeLayout>
 
     <android.support.design.widget.NavigationView
