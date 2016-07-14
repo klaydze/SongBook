@@ -1,6 +1,7 @@
 package songbook.klaydze.com.songbook.realm_model;
 
 import io.realm.RealmObject;
+import io.realm.annotations.Ignore;
 import io.realm.annotations.PrimaryKey;
 import io.realm.annotations.Required;
 
@@ -8,9 +9,6 @@ import io.realm.annotations.Required;
  * Created by Jessie on 7/8/2016.
  */
 public class SongModel extends RealmObject {
-
-    @PrimaryKey
-    private int songId;
 
     @Required
     private String songNumber;
@@ -22,13 +20,8 @@ public class SongModel extends RealmObject {
     private String songCountry;
     private boolean isFavorite;
 
-    public int getSongId() {
-        return songId;
-    }
-
-    public void setSongId(int songId) {
-        this.songId = songId;
-    }
+    @Ignore
+    private String songVolume;
 
     public String getSongNumber() {
         return songNumber;
@@ -70,4 +63,11 @@ public class SongModel extends RealmObject {
         this.isFavorite = favorite;
     }
 
+    public String getSongVolume() {
+        return songVolume;
+    }
+
+    public void setSongVolume(String songVolume) {
+        this.songVolume = songVolume;
+    }
 }
