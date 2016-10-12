@@ -1,9 +1,13 @@
 package songbook.klaydze.com.songbook.activity;
 
 
+import android.app.Dialog;
+import android.app.ProgressDialog;
+import android.app.SearchManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.AsyncTask;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -15,6 +19,9 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.Window;
+import android.support.v7.widget.SearchView;
+import android.view.WindowManager;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -24,14 +31,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 
+import io.realm.Case;
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
-import io.realm.RealmResults;
+
+import songbook.klaydze.com.songbook.decoration.recyclerview.DividerItemDecoration;
 import songbook.klaydze.com.songbook.realm_model.SongModel;
 import songbook.klaydze.com.songbook.R;
-import songbook.klaydze.com.songbook.adapter.SongListAdapter;
 import songbook.klaydze.com.songbook.adapter.SongRecyclerViewAdapter;
-import songbook.klaydze.com.songbook.decoration.recyclerview.DividerItemDecoration;
 import songbook.klaydze.com.songbook.model.SongListItem;
 
 public class MainActivity extends AppCompatActivity
@@ -41,7 +48,7 @@ public class MainActivity extends AppCompatActivity
     private SharedPreferences sharedPreferences;
 
     // SongModel list container
-    private RecyclerView recylerSongList;
+    private RecyclerView recyclerSongList;
     private LinearLayoutManager linearLayoutManager;
     private ArrayList<SongListItem> songListItems;
     private RecyclerView.Adapter songListAdapter;
@@ -62,8 +69,10 @@ public class MainActivity extends AppCompatActivity
                 .deleteRealmIfMigrationNeeded()
                 .build();
 
+        Realm.setDefaultConfiguration(config);
+
         if (realm == null)
-            realm = Realm.getInstance(config);
+            realm = Realm.getDefaultInstance();
 
         setUpToolBar();
 
@@ -71,7 +80,11 @@ public class MainActivity extends AppCompatActivity
 
         setUpRealmRecycler(0);
 
-        //loadSongListFromJSON();
+        handleIntent(getIntent());
+
+        if (realm.isEmpty()) {
+            new InitJSONFileToRealm().execute();
+        }
     }
 
     public void getDefaultTheme() {
@@ -98,6 +111,9 @@ public class MainActivity extends AppCompatActivity
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.fragment_navigation_drawer);
         navigationView.setNavigationItemSelectedListener(this);
+
+        // This code will make the icon show its original design rather than a tint design
+        navigationView.setItemIconTintList(null);
     }
 
     public void setAppTheme(int themeId) {
@@ -118,34 +134,49 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void loadSongListFromJSON() {
-        SongListItem songDetails;
+        // SongListItem songDetails;
 
         linearLayoutManager = new LinearLayoutManager(MainActivity.this);
 
-        recylerSongList = (RecyclerView) findViewById(R.id.recylerSongList);
-        recylerSongList.setLayoutManager(linearLayoutManager);
-        recylerSongList.setHasFixedSize(true);
+        recyclerSongList = (RecyclerView) findViewById(R.id.recylerSongList);
+        recyclerSongList.setLayoutManager(linearLayoutManager);
+        recyclerSongList.setHasFixedSize(true);
 
         songListItems = new ArrayList<>();
 
         try {
             JSONObject jsonObject = new JSONObject(loadJSONFromAsset());
-            JSONArray jsonArray = jsonObject.getJSONArray("rows");
+            JSONArray jsonArray = jsonObject.getJSONArray("Songs");
 
             for (int i = 0; i <= jsonArray.length(); i++) {
-                JSONArray obj = jsonArray.getJSONArray(i);
+                final JSONObject obj = jsonArray.getJSONObject(i);
 
-                songDetails = new SongListItem(obj.get(3).toString(), obj.get(1).toString(), obj.get(2).toString(), false);
-                songListItems.add(songDetails);
+                /*songDetails = new SongListItem(obj.getString("Number"), obj.getString("Title"), obj.getString("Artist"), false);
+                songListItems.add(songDetails);*/
+
+                realm.executeTransaction(new Realm.Transaction() {
+                    @Override
+                    public void execute(Realm realm) {
+                        SongModel song = realm.createObject(SongModel.class);
+                        try {
+                            song.setSongNumber(obj.getString("Number"));
+                            song.setSongTitle(obj.getString("Title"));
+                            song.setSongArtist( obj.getString("Artist"));
+                            song.setSongCountry( obj.getString("Country"));
+                            song.setFavorite(false);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
             }
-
         } catch (JSONException e) {
             e.printStackTrace();
         }
 
-        songListAdapter = new SongListAdapter(songListItems);
+        /*songListAdapter = new SongListAdapter(songListItems);
         recylerSongList.setAdapter(songListAdapter);
-        recylerSongList.addItemDecoration(new DividerItemDecoration(MainActivity.this, null));
+        recylerSongList.addItemDecoration(new DividerItemDecoration(MainActivity.this, null));*/
     }
 
     private String loadJSONFromAsset() {
@@ -153,7 +184,7 @@ public class MainActivity extends AppCompatActivity
         String jsonData = null;
 
         try {
-            inputStream = getAssets().open("songlist.json");
+            inputStream = getAssets().open("Songs.json");
             int size = inputStream.available();
             byte[] buffer = new byte[size];
             inputStream.read(buffer);
@@ -169,42 +200,70 @@ public class MainActivity extends AppCompatActivity
 
     private void setUpRealmRecycler(int i) {
         linearLayoutManager = new LinearLayoutManager(MainActivity.this);
-        recylerSongList = (RecyclerView) findViewById(R.id.recylerSongList);
-        recylerSongList.setLayoutManager(linearLayoutManager);
-        recylerSongList.setHasFixedSize(true);
+        recyclerSongList = (RecyclerView) findViewById(R.id.recylerSongList);
+        recyclerSongList.setLayoutManager(linearLayoutManager);
+        recyclerSongList.setHasFixedSize(true);
 
         switch (i) {
-            case 0: // All Song
-                recylerSongList.setAdapter(new SongRecyclerViewAdapter(getApplicationContext(),
+            case 0: // PH
+                recyclerSongList.setAdapter(new SongRecyclerViewAdapter(getApplicationContext(),
                         realm.where(SongModel.class)
-                                .findAll()));
+                                .equalTo("songCountry", "PH")
+                                .findAllSorted("songTitle")));
                 break;
-            case 1: // Favorite
-                recylerSongList.setAdapter(new SongRecyclerViewAdapter(getApplicationContext(),
+            case 1: // JP
+                recyclerSongList.setAdapter(new SongRecyclerViewAdapter(getApplicationContext(),
+                        realm.where(SongModel.class)
+                                .equalTo("songCountry", "JP")
+                                .findAllSorted("songTitle")));
+                break;
+            case 2: // KR
+                recyclerSongList.setAdapter(new SongRecyclerViewAdapter(getApplicationContext(),
+                        realm.where(SongModel.class)
+                                .equalTo("songCountry", "KR")
+                                .findAllSorted("songTitle")));
+                break;
+            case 3: // CN
+                recyclerSongList.setAdapter(new SongRecyclerViewAdapter(getApplicationContext(),
+                        realm.where(SongModel.class)
+                                .equalTo("songCountry", "CN")
+                                .findAllSorted("songTitle")));
+                break;
+            case 4: // Favorites
+                recyclerSongList.setAdapter(new SongRecyclerViewAdapter(getApplicationContext(),
                         realm.where(SongModel.class)
                                 .equalTo("isFavorite", true)
                                 .findAllSorted("songTitle")));
                 break;
-            case 2: // Local
-                recylerSongList.setAdapter(new SongRecyclerViewAdapter(getApplicationContext(),
-                        realm.where(SongModel.class)
-                                .equalTo("songCountry", "PHI")
-                                .findAllSorted("songTitle")));
-                break;
-            case 3: // International
-                recylerSongList.setAdapter(new SongRecyclerViewAdapter(getApplicationContext(),
+            case 5: // International
+                recyclerSongList.setAdapter(new SongRecyclerViewAdapter(getApplicationContext(),
                         realm.where(SongModel.class)
                                 .equalTo("songCountry", "INT")
                                 .findAllSorted("songTitle")));
                 break;
         }
 
-        recylerSongList.addItemDecoration(new DividerItemDecoration(MainActivity.this, null));
+        recyclerSongList.addItemDecoration(new DividerItemDecoration(MainActivity.this, null));
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
+
+        SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
+        SearchView searchView =  (SearchView) menu.findItem(R.id.action_search).getActionView();
+
+        if (searchView != null) {
+            // Assumes current activity is the searchable activity
+
+            searchView.setSubmitButtonEnabled(false);
+            searchView.setQueryRefinementEnabled(true);
+            searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
+            searchView.setIconifiedByDefault(false);
+            searchView.setFocusable(true);
+            searchView.setQueryHint(getString(R.string.action_search_hint));
+        }
+
         return true;
     }
 
@@ -215,11 +274,19 @@ public class MainActivity extends AppCompatActivity
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
         if (id == R.id.action_about) {
-            return true;
-        } else if (id == R.id.action_refresh) {
-//            setUpRealmRecycler();
+            Dialog dialog = new Dialog(MainActivity.this);
+            dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+            dialog.setContentView(R.layout.about_dialog);
+
+            WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams();
+            layoutParams.copyFrom(dialog.getWindow().getAttributes());
+            layoutParams.width = WindowManager.LayoutParams.MATCH_PARENT;
+            layoutParams.height = WindowManager.LayoutParams.WRAP_CONTENT;
+
+            dialog.show();
+            dialog.getWindow().setAttributes(layoutParams);
+
             return true;
         }
 
@@ -231,26 +298,36 @@ public class MainActivity extends AppCompatActivity
         // Handle navigation view item clicks here.
         int id = item.getItemId();
 
-        if (id == R.id.nav_all_songs) {
+        if (id == R.id.nav_ph_songs) {
             if (getSupportActionBar() != null)
-                getSupportActionBar().setTitle(R.string.title_all_songs);
+                getSupportActionBar().setTitle(R.string.nav_item_ph);
 
             setUpRealmRecycler(0);
-        } else if (id == R.id.nav_favorite_songs) {
+        } else if (id == R.id.nav_jp_songs) {
             if (getSupportActionBar() != null)
-                getSupportActionBar().setTitle(R.string.title_favorites);
+                getSupportActionBar().setTitle(R.string.nav_item_jp);
 
             setUpRealmRecycler(1);
-        } else if (id == R.id.nav_local_songs) {
+        } else if (id == R.id.nav_kr_songs) {
             if (getSupportActionBar() != null)
-                getSupportActionBar().setTitle(R.string.title_local);
+                getSupportActionBar().setTitle(R.string.nav_item_kr);
 
             setUpRealmRecycler(2);
-        } else if (id == R.id.nav_international_songs) {
+        } else if (id == R.id.nav_cn_songs) {
             if (getSupportActionBar() != null)
-                getSupportActionBar().setTitle(R.string.title_international);
+                getSupportActionBar().setTitle(R.string.nav_item_cn);
 
             setUpRealmRecycler(3);
+        } else if (id == R.id.nav_favorite_songs) {
+            if (getSupportActionBar() != null)
+                getSupportActionBar().setTitle(R.string.nav_item_favorites);
+
+            setUpRealmRecycler(4);
+        } else if (id == R.id.nav_international_songs) {
+            if (getSupportActionBar() != null)
+                getSupportActionBar().setTitle(R.string.nav_item_international);
+
+            setUpRealmRecycler(5);
         }
 
         if (id == R.id.nav_settings) {
@@ -276,5 +353,110 @@ public class MainActivity extends AppCompatActivity
         super.onDestroy();
 
         realm.close();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        handleIntent(intent);
+    }
+
+    private void handleIntent(Intent intent) {
+        if (Intent.ACTION_VIEW.equals(intent.getAction())) {
+
+        } else if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
+            String queryWord = intent.getStringExtra(SearchManager.QUERY);
+
+            recyclerSongList.setAdapter(new SongRecyclerViewAdapter(getApplicationContext(),
+                    realm.where(SongModel.class)
+                            .contains("songTitle", queryWord, Case.INSENSITIVE)
+                            .or()
+                            .contains("songArtist", queryWord, Case.INSENSITIVE)
+                            .findAllSorted("songTitle")));
+        }
+    }
+
+    private class InitJSONFileToRealm extends AsyncTask<Void, Integer, Void> {
+
+        int songCount;
+        boolean isRunning;
+        ProgressDialog progressDialog;
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+
+            isRunning = true;
+
+            progressDialog = new ProgressDialog(MainActivity.this);
+            // progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+            progressDialog.setTitle("Please wait");
+            progressDialog.setMessage("Initializing song database for the first time...");
+            progressDialog.setCancelable(false);
+            progressDialog.show();
+        }
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            /**
+             * You need to create a new object of Realm in this thread.
+             Source: https://realm.io/docs/java/latest/#threading
+             */
+            Realm realmJSON = Realm.getDefaultInstance();
+
+            try {
+                JSONObject jsonObject = new JSONObject(loadJSONFromAsset());
+                JSONArray jsonArray = jsonObject.getJSONArray("Songs");
+
+                songCount = jsonArray.length();
+
+                for (int i = 0; i <= jsonArray.length(); i++) {
+                    final JSONObject obj = jsonArray.getJSONObject(i);
+
+                    realmJSON.executeTransaction(new Realm.Transaction() {
+                        @Override
+                        public void execute(Realm realm) {
+                            SongModel song = realm.createObject(SongModel.class);
+                            try {
+                                song.setSongNumber(obj.getString("Number"));
+                                song.setSongTitle(obj.getString("Title"));
+                                song.setSongArtist(obj.getString("Artist"));
+                                song.setSongCountry(obj.getString("Country"));
+                                song.setFavorite(false);
+                                if (!obj.getString("Chorus").trim().equals("")) {
+                                    song.setSongHasChorus(true);
+                                } else {
+                                    song.setSongHasChorus(false);
+                                }
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+
+                    publishProgress(i);
+
+                    progressDialog.setMax(songCount);
+                }
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+
+            return null;
+        }
+
+        @Override
+        protected void onProgressUpdate(Integer... values) {
+            super.onProgressUpdate(values);
+
+            progressDialog.setProgress(values[0]);
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+
+            isRunning = false;
+            progressDialog.dismiss();
+        }
     }
 }
