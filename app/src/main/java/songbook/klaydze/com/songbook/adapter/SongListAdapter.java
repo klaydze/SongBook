@@ -18,8 +18,16 @@ public class SongListAdapter extends RecyclerView.Adapter<SongListAdapter.ViewHo
     private ArrayList<SongListItem> songItems;
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
+        TextView itemSongNumber;
+        TextView itemSongTitle;
+        TextView itemSongArtist;
+
         public ViewHolder(View view) {
             super(view);
+
+            itemSongNumber = (TextView) view.findViewById(R.id.tvSongNumber);
+            itemSongTitle = (TextView) view.findViewById(R.id.tvSongTitle);
+            itemSongArtist = (TextView) view.findViewById(R.id.tvSongArtist);
         }
     }
 
@@ -35,13 +43,9 @@ public class SongListAdapter extends RecyclerView.Adapter<SongListAdapter.ViewHo
     }
     @Override
     public void onBindViewHolder(final ViewHolder holder, final int position) {
-        TextView itemSongNumber = (TextView) holder.itemView.findViewById(R.id.tvSongNumber);
-        TextView itemSongTitle = (TextView) holder.itemView.findViewById(R.id.tvSongTitle);
-        TextView itemSongArtist = (TextView) holder.itemView.findViewById(R.id.tvSongArtist);
-
-        itemSongNumber.setText(songItems.get(position).getSongNumber());
-        itemSongTitle.setText(songItems.get(position).getSongTitle());
-        itemSongArtist.setText(songItems.get(position).getSongArtist());
+        holder.itemSongNumber.setText(songItems.get(position).getSongNumber());
+        holder.itemSongTitle.setText(songItems.get(position).getSongTitle());
+        holder.itemSongArtist.setText(songItems.get(position).getSongArtist());
     }
 
     @Override
