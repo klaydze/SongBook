@@ -5,8 +5,11 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.ToggleButton;
+
+import java.util.Locale;
 
 import io.realm.OrderedRealmCollection;
 import io.realm.Realm;
@@ -14,9 +17,6 @@ import io.realm.RealmRecyclerViewAdapter;
 import songbook.klaydze.com.songbook.realm_model.SongModel;
 import songbook.klaydze.com.songbook.R;
 
-/**
- * Created by Jessie on 7/8/2016.
- */
 public class SongRecyclerViewAdapter extends RealmRecyclerViewAdapter<SongModel, SongRecyclerViewAdapter.ViewHolder> {
 
     Realm realm;
@@ -35,44 +35,74 @@ public class SongRecyclerViewAdapter extends RealmRecyclerViewAdapter<SongModel,
     public void onBindViewHolder(ViewHolder holder, int position) {
         realm = Realm.getDefaultInstance();
 
-        final SongModel song = getData().get(position);
+        try {
+            final SongModel song = getData().get(position);
+            final ToggleButton toggleButton;
 
-        final TextView itemSongTitle = (TextView) holder.itemView.findViewById(R.id.tvSongTitle);
-        final ToggleButton itemSongFavorite = (ToggleButton) holder.itemView.findViewById(R.id.toggleFavorite);
-        TextView itemSongNumber = (TextView) holder.itemView.findViewById(R.id.tvSongNumber);
-        TextView itemSongArtist = (TextView) holder.itemView.findViewById(R.id.tvSongArtist);
+            holder.tvSongNumber.setText(String.format(Locale.getDefault(), "%05d", Integer.parseInt(song.getSongNumber())));
+            holder.tvSongTitle.setText(song.getSongTitle());
+            holder.tvSongArtist.setText(song.getSongArtist());
+            holder.tbFavorite.setChecked(song.isFavorite());
 
-        itemSongNumber.setText(song.getSongNumber());
-        itemSongTitle.setText(song.getSongTitle());
-        itemSongArtist.setText(song.getSongArtist());
-        itemSongFavorite.setChecked(song.isFavorite());
-
-        itemSongFavorite.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (itemSongFavorite.isChecked()) {
-                    realm.executeTransaction(new Realm.Transaction() {
-                        @Override
-                        public void execute(Realm realm) {
-                            song.setFavorite(itemSongFavorite.isChecked());
-                        }
-                    });
-                }
-                else {
-                    realm.executeTransaction(new Realm.Transaction() {
-                        @Override
-                        public void execute(Realm realm) {
-                            song.setFavorite(itemSongFavorite.isChecked());
-                        }
-                    });
-                }
+            if (song.getHasSongChorus()) {
+                holder.imgChorus.setVisibility(View.VISIBLE);
+            } else {
+                holder.imgChorus.setVisibility(View.GONE);
             }
-        });
+
+            song.setSongVolume("Vol 10");
+            if (song.getSongVolume() == null || song.getSongVolume().isEmpty()) {
+                holder.tvSongVolume.setText("");
+                holder.tvSongVolume.setVisibility(View.INVISIBLE);
+            } else {
+                holder.tvSongVolume.setText(song.getSongVolume());
+                holder.tvSongVolume.setVisibility(View.VISIBLE);
+            }
+
+            toggleButton = holder.tbFavorite;
+            toggleButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if (toggleButton.isChecked()) {
+                        realm.executeTransaction(new Realm.Transaction() {
+                            @Override
+                            public void execute(Realm realm) {
+                                song.setFavorite(true);
+                            }
+                        });
+                    } else {
+                        realm.executeTransaction(new Realm.Transaction() {
+                            @Override
+                            public void execute(Realm realm) {
+                                song.setFavorite(false);
+                            }
+                        });
+                    }
+                }
+            });
+        } catch (Exception e) {
+            String err;
+            err = e.getStackTrace().toString();
+        }
     }
 
-    class ViewHolder extends RecyclerView.ViewHolder {
+    public static class ViewHolder extends RecyclerView.ViewHolder {
+        TextView tvSongTitle;
+        ToggleButton tbFavorite;
+        TextView tvSongNumber;
+        TextView tvSongArtist;
+        TextView tvSongVolume;
+        ImageView imgChorus;
+
         public ViewHolder(View itemView) {
             super(itemView);
+
+            tvSongTitle = (TextView) itemView.findViewById(R.id.tvSongTitle);
+            tbFavorite = (ToggleButton) itemView.findViewById(R.id.toggleFavorite);
+            tvSongNumber = (TextView) itemView.findViewById(R.id.tvSongNumber);
+            tvSongArtist = (TextView) itemView.findViewById(R.id.tvSongArtist);
+            tvSongVolume = (TextView) itemView.findViewById(R.id.tvSongVolume);
+            imgChorus = (ImageView) itemView.findViewById(R.id.imgChorus);
         }
     }
 }

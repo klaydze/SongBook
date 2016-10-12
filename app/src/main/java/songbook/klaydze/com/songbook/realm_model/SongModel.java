@@ -22,6 +22,7 @@ public class SongModel extends RealmObject {
 
     @Ignore
     private String songVolume;
+    private boolean songHasChorus;
 
     public String getSongNumber() {
         return songNumber;
@@ -69,5 +70,13 @@ public class SongModel extends RealmObject {
 
     public void setSongVolume(String songVolume) {
         this.songVolume = songVolume;
+    }
+
+    public boolean getHasSongChorus() {
+        return songHasChorus;
+    }
+
+    public void setSongHasChorus(boolean songHasChorus) {
+        this.songHasChorus = songHasChorus;
     }
 }
